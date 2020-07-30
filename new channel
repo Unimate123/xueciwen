@@ -1,1 +1,1568 @@
+from pyecharts.charts import *
+from pyecharts import options as opts
+from pyecharts.commons.utils import JsCode
+import os,math,time,datetime
+import pandas as pd
+from pandas import Series, DataFrame
+import numpy as np
+import matplotlib.pyplot as plt
 
+from IPython.display import display
+from IPython.display import HTML
+import IPython.core.display as di
+di.display_html('<script>jQuery(function() {if (jQuery("body.notebook_app").length == 0) { jQuery(".input_area").toggle(); jQuery(".prompt").toggle();}});</script>', raw=True)
+CSS = """#notebook div.output_subarea {max-width:100%;}""" #changes output_subarea width to 100% (from 100% - 14ex)
+HTML('<style>{}</style>'.format(CSS))
+
+#蓝，红，紫，紫红
+colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+
+os.chdir(r'c:\Users\xhd-pc88\Desktop\轨迹组月报')
+df_zd=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='在读')
+df_br=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='班容&考勤')
+df_fd=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='辅导指标')
+df_tj_trend=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-趋势')
+df_tj_tx=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-条线完成')
+df_tj_xq=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-校区完成')
+df_tj_9indexes=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-九指标')
+#小数转为100 并保留1位小数
+def float_to_percent(some_list):
+    return [round(x*100,1) for x in some_list]
+
+#整数保留2位小数
+def round_to_num(some_list):
+    return [round(x,2) for x in some_list]
+
+#时间戳截取日期
+def timestamp_to_date(some_list):
+    return [x.strftime('%m-%d') for x in some_list]
+
+
+# 一.在读学员情况
+
+df_zd_xq = df_zd[df_zd['类型']=='校区'].to_dict(orient='list')
+df_zd_xy = df_zd[df_zd['类型']=='学院'].to_dict(orient='list')
+df_zd_gzs = df_zd[df_zd['类型']=='工作室'].to_dict(orient='list')
+
+ZD_xq_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px",height="500px"))
+    .add_xaxis(df_zd_xq['单位'])
+    .add_yaxis("班课", df_zd_xq['班课'],stack='stack1')
+    .add_yaxis("个性化", df_zd_xq['个性化'],stack='stack1')
+    .set_series_opts(label_opts=opts.LabelOpts(is_show=False))
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        #toolbox_opts=opts.ToolboxOpts(),
+        graphic_opts=[
+            opts.GraphicGroup(
+                graphic_item=opts.GraphicItem(
+                    rotation=JsCode("7*Math.PI / 4"),
+                    bounding="raw",
+                    right=110,
+                    top=110,
+                    z=100,
+                ),
+                children=[
+                    opts.GraphicRect(
+                        graphic_item=opts.GraphicItem(
+                            left="center", top="center", z=100
+                        ),
+                        graphic_shape_opts=opts.GraphicShapeOpts(width=400, height=50),
+                        graphic_basicstyle_opts=opts.GraphicBasicStyleOpts(
+                            fill="rgba(0,0,0,0.3)"
+                        ),
+                    ),
+                    opts.GraphicText(
+                        graphic_item=opts.GraphicItem(
+                            left="center", top="center", z=100
+                        ),
+                        graphic_textstyle_opts=opts.GraphicTextStyleOpts(
+                            text='校区总人数：'+str(df_zd[df_zd['类型']=='校区']['合计'].sum()),
+                            font="bold 26px Microsoft YaHei",
+                            graphic_basicstyle_opts=opts.GraphicBasicStyleOpts(
+                                fill="#fff"
+                            ),
+                        ),
+                    ),
+                ],
+            )
+        ],
+    )
+)
+
+ZD_xy_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px",height="500px"))
+    .add_xaxis(df_zd_xy['单位'])
+    .add_yaxis("总计", df_zd_xy['合计'])
+    .set_series_opts(label_opts=opts.LabelOpts(is_show=False))
+    .set_global_opts(
+        legend_opts=opts.LegendOpts(is_show=False),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        graphic_opts=[
+            opts.GraphicGroup(
+                graphic_item=opts.GraphicItem(
+                    rotation=JsCode("7*Math.PI / 4"),
+                    bounding="raw",
+                    right=110,
+                    top=110,
+                    z=100,
+                ),
+                children=[
+                    opts.GraphicRect(
+                        graphic_item=opts.GraphicItem(
+                            left="center", top="center", z=100
+                        ),
+                        graphic_shape_opts=opts.GraphicShapeOpts(width=400, height=50),
+                        graphic_basicstyle_opts=opts.GraphicBasicStyleOpts(
+                            fill="rgba(0,0,0,0.3)"
+                        ),
+                    ),
+                    opts.GraphicText(
+                        graphic_item=opts.GraphicItem(
+                            left="center", top="center", z=100
+                        ),
+                        graphic_textstyle_opts=opts.GraphicTextStyleOpts(
+                            text='学院总人数：'+str(df_zd[df_zd['类型']=='学院']['合计'].sum()),
+                            font="bold 26px Microsoft YaHei",
+                            graphic_basicstyle_opts=opts.GraphicBasicStyleOpts(
+                                fill="#fff"
+                            ),
+                        ),
+                    ),
+                ],
+            )
+        ],
+    )
+)
+
+ZD_gzs_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px",height="500px"))
+    .add_xaxis(df_zd_gzs['单位'])
+    .add_yaxis("总计", df_zd_gzs['合计'])
+    .set_series_opts(label_opts=opts.LabelOpts(is_show=False))
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        legend_opts=opts.LegendOpts(is_show=False),
+        graphic_opts=[
+            opts.GraphicGroup(
+                graphic_item=opts.GraphicItem(
+                    rotation=JsCode("7*Math.PI / 4"),
+                    bounding="raw",
+                    right=110,
+                    top=110,
+                    z=100,
+                ),
+                children=[
+                    opts.GraphicRect(
+                        graphic_item=opts.GraphicItem(
+                            left="center", top="center", z=100
+                        ),
+                        graphic_shape_opts=opts.GraphicShapeOpts(width=400, height=50),
+                        graphic_basicstyle_opts=opts.GraphicBasicStyleOpts(
+                            fill="rgba(0,0,0,0.3)"
+                        ),
+                    ),
+                    opts.GraphicText(
+                        graphic_item=opts.GraphicItem(
+                            left="center", top="center", z=100
+                        ),
+                        graphic_textstyle_opts=opts.GraphicTextStyleOpts(
+                            text='工作室总人数：'+str(df_zd[df_zd['类型']=='工作室']['合计'].sum()),
+                            font="bold 26px Microsoft YaHei",
+                            graphic_basicstyle_opts=opts.GraphicBasicStyleOpts(
+                                fill="#fff"
+                            ),
+                        ),
+                    ),
+                ],
+            )
+        ],
+    )
+)
+
+ZD_tab=Tab()
+ZD_tab.add(ZD_xq_bar, "校区在读")
+ZD_tab.add(ZD_xy_bar, "学院在读")
+ZD_tab.add(ZD_gzs_bar, "工作室在读")
+ZD_tab.render_notebook()
+# 二.班容&考勤情况
+
+#df_br=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='班容&考勤')
+df_br1=df_br[df_br['校区']!='合计']
+df_br2=df_br[df_br['校区']=='合计']
+df_br1=df_br1.to_dict(orient='list')
+
+## 2.1 总览
+
+#蓝，红，紫，紫红
+colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+
+l_bkbr_br2 = Liquid(init_opts=opts.InitOpts(width="600px", height="600px")).add(
+    series_name="班课班容",
+    data=list(round(df_br2['班课班容'], 3)),
+    #shape='diamond',
+    center=["10%", "50%"],
+    color=['#d14a61'],
+    is_outline_show=False,
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="班课班容",pos_left="5%"))
+
+
+l_ztbr_br2 = Liquid(init_opts=opts.InitOpts(width="600px", height="600px")).add(
+    "整体班容", list(round(df_br2['整体班容'], 3)),
+    #shape='diamond',
+    center=["35%", "50%"],
+    color=['#d14a61'],
+    is_outline_show=False,
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="整体班容",pos_left="29%"))
+
+
+l_bkcq_br2 = Liquid(init_opts=opts.InitOpts(width="600px",height="600px")).add(
+    "班课出勤", list(round(df_br2['班课出勤'], 3)),
+    center=["60%", "50%"],
+    color=['#5793f3'],
+    is_outline_show=False,
+    shape='roundRect',
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="班课出勤",pos_left="55%"))
+
+l_ztcq_br2 = Liquid(init_opts=opts.InitOpts(width="600px",height="600px")).add(
+    "整体出勤", list(round(df_br2['整体出勤'], 3)),
+    center=["85%", "50%"],
+    color=['#5793f3'],
+    is_outline_show=False,
+    shape='roundRect',
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="整体出勤",pos_left="80%"))
+
+
+BR_grid = Grid(init_opts=opts.InitOpts(width="800px",height="250px")).add(l_bkbr_br2, grid_opts=opts.GridOpts()).add(l_ztbr_br2, grid_opts=opts.GridOpts()).add(l_bkcq_br2,grid_opts=opts.GridOpts()).add(l_ztcq_br2, grid_opts=opts.GridOpts())
+BR_grid.render_notebook()
+
+## 2.2 校区明细
+
+#蓝，红，紫，紫红
+#colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+x_data=df_br1['校区']
+legend_list=list(df_br1.keys())[1:]
+
+BR_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="550px"))
+    .add_xaxis(xaxis_data=x_data)
+  #  .add_yaxis(
+  #      series_name="整体班容",
+  #      yaxis_data=float_to_percent(df_br1['整体班容']),
+  #      yaxis_index=0,
+  #      color=colors[1],
+  #  )
+    .add_yaxis(
+        series_name="班课班容", yaxis_data=float_to_percent(df_br1['班课班容']), yaxis_index=1, color=colors[1]
+    )
+    .add_yaxis(
+        series_name="整体班容", yaxis_data=float_to_percent(df_br1['整体班容']), yaxis_index=1, color=colors[0]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="班容",
+            type_="value",
+            min_=0,
+            max_=130,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value} %")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="出勤",
+            min_=0,
+            max_=100,
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[3])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value} %"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+
+BR_line = (
+    Line()
+    .add_xaxis(xaxis_data=x_data)
+    .add_yaxis(
+        series_name="班课出勤", y_axis=float_to_percent(df_br1['班课出勤']),is_connect_nones=True, yaxis_index=0, color=colors[2]
+    )
+    .add_yaxis(
+        series_name="整体出勤", y_axis=float_to_percent(df_br1['整体出勤']),is_connect_nones=True, yaxis_index=0, color=colors[1]
+    )
+)
+
+BR_bar.overlap(BR_line).render_notebook()
+
+# 三.辅导情况
+
+## 3.1 总览
+
+#df_fd=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='辅导指标')
+df_fd1=df_fd[df_fd['类型']=='整体']
+out_fd1=df_fd1.drop(['类型'],axis='columns')
+#pd.to_numeric(df_fd1, errors='coerce')
+out_fd1.index = Series(['']*len(out_fd1))
+out_fd1['辅导率']=out_fd1['辅导率'].apply(lambda x: format(x, '.2%'))
+out_fd1['辅导时长']=round(out_fd1['辅导时长'],2)
+out_fd1['辅导反馈']=out_fd1['辅导反馈'].apply(lambda x: format(x, '.2%'))
+out_fd1['学员时长/次']=round(out_fd1['学员时长/次'],2)
+out_fd1
+
+## 3.2 校区明细
+
+df_fd2=df_fd[df_fd['类型']!='整体']
+df_fd2_gxh=df_fd[df_fd['类型']=='个性化']
+ls_fd2_gxh=df_fd2_gxh.to_dict(orient='list')
+df_fd2_xy=df_fd[df_fd['类型']=='学院']
+ls_fd2_xy=df_fd2_xy.to_dict(orient='list')
+df_fd2_gzs=df_fd[df_fd['类型']=='工作室']
+ls_fd2_gzs=df_fd2_gzs.to_dict(orient='list')
+二.班容&考勤情况
+#df_br=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='班容&考勤')
+df_br1=df_br[df_br['校区']!='合计']
+df_br2=df_br[df_br['校区']=='合计']
+df_br1=df_br1.to_dict(orient='list')
+2.1 总览
+#蓝，红，紫，紫红
+colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+​
+l_bkbr_br2 = Liquid(init_opts=opts.InitOpts(width="600px", height="600px")).add(
+    series_name="班课班容",
+    data=list(round(df_br2['班课班容'], 3)),
+    #shape='diamond',
+    center=["10%", "50%"],
+    color=['#d14a61'],
+    is_outline_show=False,
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="班课班容",pos_left="5%"))
+​
+​
+l_ztbr_br2 = Liquid(init_opts=opts.InitOpts(width="600px", height="600px")).add(
+    "整体班容", list(round(df_br2['整体班容'], 3)),
+    #shape='diamond',
+    center=["35%", "50%"],
+    color=['#d14a61'],
+    is_outline_show=False,
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="整体班容",pos_left="29%"))
+​
+​
+l_bkcq_br2 = Liquid(init_opts=opts.InitOpts(width="600px",height="600px")).add(
+    "班课出勤", list(round(df_br2['班课出勤'], 3)),
+    center=["60%", "50%"],
+    color=['#5793f3'],
+    is_outline_show=False,
+    shape='roundRect',
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="班课出勤",pos_left="55%"))
+​
+l_ztcq_br2 = Liquid(init_opts=opts.InitOpts(width="600px",height="600px")).add(
+    "整体出勤", list(round(df_br2['整体出勤'], 3)),
+    center=["85%", "50%"],
+    color=['#5793f3'],
+    is_outline_show=False,
+    shape='roundRect',
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="整体出勤",pos_left="80%"))
+​
+​
+BR_grid = Grid(init_opts=opts.InitOpts(width="800px",height="250px")).add(l_bkbr_br2, grid_opts=opts.GridOpts()).add(l_ztbr_br2, grid_opts=opts.GridOpts()).add(l_bkcq_br2,grid_opts=opts.GridOpts()).add(l_ztcq_br2, grid_opts=opts.GridOpts())
+BR_grid.render_notebook()
+2.2 校区明细
+#蓝，红，紫，紫红
+#colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+x_data=df_br1['校区']
+legend_list=list(df_br1.keys())[1:]
+BR_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="550px"))
+    .add_xaxis(xaxis_data=x_data)
+  #  .add_yaxis(
+  #      series_name="整体班容",
+  #      yaxis_data=float_to_percent(df_br1['整体班容']),
+  #      yaxis_index=0,
+  #      color=colors[1],
+  #  )
+    .add_yaxis(
+        series_name="班课班容", yaxis_data=float_to_percent(df_br1['班课班容']), yaxis_index=1, color=colors[1]
+    )
+    .add_yaxis(
+        series_name="整体班容", yaxis_data=float_to_percent(df_br1['整体班容']), yaxis_index=1, color=colors[0]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="班容",
+            type_="value",
+            min_=0,
+            max_=130,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value} %")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="出勤",
+            min_=0,
+            max_=100,
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[3])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value} %"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+BR_line = (
+    Line()
+    .add_xaxis(xaxis_data=x_data)
+    .add_yaxis(
+        series_name="班课出勤", y_axis=float_to_percent(df_br1['班课出勤']),is_connect_nones=True, yaxis_index=0, color=colors[2]
+    )
+    .add_yaxis(
+        series_name="整体出勤", y_axis=float_to_percent(df_br1['整体出勤']),is_connect_nones=True, yaxis_index=0, color=colors[1]
+    )
+)
+​
+BR_bar.overlap(BR_line).render_notebook()
+三.辅导情况
+3.1 总览
+#df_fd=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='辅导指标')
+df_fd1=df_fd[df_fd['类型']=='整体']
+out_fd1=df_fd1.drop(['类型'],axis='columns')
+#pd.to_numeric(df_fd1, errors='coerce')
+out_fd1.index = Series(['']*len(out_fd1))
+out_fd1['辅导率']=out_fd1['辅导率'].apply(lambda x: format(x, '.2%'))
+out_fd1['辅导时长']=round(out_fd1['辅导时长'],2)
+out_fd1['辅导反馈']=out_fd1['辅导反馈'].apply(lambda x: format(x, '.2%'))
+out_fd1['学员时长/次']=round(out_fd1['学员时长/次'],2)
+out_fd1
+单位	辅导率	辅导时长	辅导反馈	学员时长/次
+个性化	91.88%	5.10	95.43%	1.40
+腾飞&锦秋	82.50%	4.56	89.42%	1.70
+工作室	nan%	3.95	94.84%	1.74
+3.2 校区明细
+df_fd2=df_fd[df_fd['类型']!='整体']
+df_fd2_gxh=df_fd[df_fd['类型']=='个性化']
+ls_fd2_gxh=df_fd2_gxh.to_dict(orient='list')
+df_fd2_xy=df_fd[df_fd['类型']=='学院']
+ls_fd2_xy=df_fd2_xy.to_dict(orient='list')
+df_fd2_gzs=df_fd[df_fd['类型']=='工作室']
+ls_fd2_gzs=df_fd2_gzs.to_dict(orient='list')
+FD_gxh_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="600px"))
+    .add_xaxis(xaxis_data=ls_fd2_gxh['单位'])
+    .add_yaxis(
+        series_name="辅导时长", yaxis_data=round_to_num(ls_fd2_gxh['辅导时长']), yaxis_index=2, color=colors[0]
+    )
+    .add_yaxis(
+        series_name="学员时长/次", yaxis_data=round_to_num(ls_fd2_gxh['学员时长/次']), yaxis_index=1, color=colors[2]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="学员时长/次",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gxh['学员时长/次'])),
+            position="right",
+            offset=50,
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[0])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="辅导时长",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gxh['辅导时长'])+1),
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="",
+            min_=0,
+            max_=100,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[1])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}%"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+FD_gxh_line = (
+    Line()
+    .add_xaxis(xaxis_data=ls_fd2_gxh['单位'])
+    .add_yaxis(
+        series_name="辅导率", y_axis=float_to_percent(ls_fd2_gxh['辅导率']),is_connect_nones=True,color=colors[0]
+    )
+    .add_yaxis(
+        series_name="辅导反馈", y_axis=float_to_percent(ls_fd2_gxh['辅导反馈']),is_connect_nones=True,color=colors[3]
+    )
+)
+#FD_gxh_bar.overlap(FD_gxh_line).render_notebook()
+FD_xy_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="600px"))
+    .add_xaxis(xaxis_data=ls_fd2_xy['单位'])
+    .add_yaxis(
+        series_name="辅导时长", yaxis_data=round_to_num(ls_fd2_xy['辅导时长']), yaxis_index=2, color=colors[0]
+    )
+    .add_yaxis(
+        series_name="学员时长/次", yaxis_data=round_to_num(ls_fd2_xy['学员时长/次']), yaxis_index=1, color=colors[2]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="学员时长/次",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_xy['学员时长/次'])),
+            position="right",
+            offset=50,
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[0])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="辅导时长",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_xy['辅导时长'])+1),
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="",
+            min_=0,
+            max_=100,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[1])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}%"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+FD_xy_line = (
+    Line()
+    .add_xaxis(xaxis_data=ls_fd2_xy['单位'])
+    .add_yaxis(
+        series_name="辅导率", y_axis=float_to_percent(ls_fd2_xy['辅导率']),yaxis_index=0,is_connect_nones=True,color=colors[0]
+    )
+    .add_yaxis(
+        series_name="辅导反馈", y_axis=float_to_percent(ls_fd2_xy['辅导反馈']),is_connect_nones=True,color=colors[3]
+    )
+)
+#FD_xy_bar.overlap(FD_xy_line).render_notebook()
+FD_gzs_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="600px"))
+    .add_xaxis(xaxis_data=ls_fd2_gzs['单位'])
+    .add_yaxis(
+        series_name="辅导时长", yaxis_data=round_to_num(ls_fd2_gzs['辅导时长']), yaxis_index=2, color=colors[0]
+    )
+    .add_yaxis(
+        series_name="学员时长/次", yaxis_data=round_to_num(ls_fd2_gzs['学员时长/次']), yaxis_index=1, color=colors[2]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="学员时长/次",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gzs['学员时长/次'])),
+            position="right",
+            offset=50,
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[0])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="辅导时长",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gzs['辅导时长'])+1),
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="",
+            min_=0,
+            max_=100,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[1])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}%"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+FD_gzs_line = (
+    Line()
+    .add_xaxis(xaxis_data=ls_fd2_gzs['单位'])
+    .add_yaxis(
+        series_name="辅导反馈", y_axis=float_to_percent(ls_fd2_gzs['辅导反馈']),yaxis_index=0,is_connect_nones=True,color=colors[3]
+    )
+)
+#FD_gzs_bar.overlap(FD_gzs_line).render_notebook()
+FD_tab=Tab()
+FD_tab.add(FD_gxh_bar.overlap(FD_gxh_line), "个性化辅导")
+FD_tab.add(FD_xy_bar.overlap(FD_xy_line), "腾飞锦秋辅导")
+FD_tab.add(FD_gzs_bar.overlap(FD_gzs_line), "工作室辅导")
+FD_tab.render_notebook()
+个性化辅导 腾飞锦秋辅导 工作室辅导
+四.推荐报班情况
+二.班容&考勤情况
+#df_br=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='班容&考勤')
+df_br1=df_br[df_br['校区']!='合计']
+df_br2=df_br[df_br['校区']=='合计']
+df_br1=df_br1.to_dict(orient='list')
+2.1 总览
+#蓝，红，紫，紫红
+colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+​
+l_bkbr_br2 = Liquid(init_opts=opts.InitOpts(width="600px", height="600px")).add(
+    series_name="班课班容",
+    data=list(round(df_br2['班课班容'], 3)),
+    #shape='diamond',
+    center=["10%", "50%"],
+    color=['#d14a61'],
+    is_outline_show=False,
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="班课班容",pos_left="5%"))
+​
+​
+l_ztbr_br2 = Liquid(init_opts=opts.InitOpts(width="600px", height="600px")).add(
+    "整体班容", list(round(df_br2['整体班容'], 3)),
+    #shape='diamond',
+    center=["35%", "50%"],
+    color=['#d14a61'],
+    is_outline_show=False,
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="整体班容",pos_left="29%"))
+​
+​
+l_bkcq_br2 = Liquid(init_opts=opts.InitOpts(width="600px",height="600px")).add(
+    "班课出勤", list(round(df_br2['班课出勤'], 3)),
+    center=["60%", "50%"],
+    color=['#5793f3'],
+    is_outline_show=False,
+    shape='roundRect',
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="班课出勤",pos_left="55%"))
+​
+l_ztcq_br2 = Liquid(init_opts=opts.InitOpts(width="600px",height="600px")).add(
+    "整体出勤", list(round(df_br2['整体出勤'], 3)),
+    center=["85%", "50%"],
+    color=['#5793f3'],
+    is_outline_show=False,
+    shape='roundRect',
+    label_opts=opts.LabelOpts(
+        font_size=15,
+        formatter=JsCode(
+            """function (param) {
+                    return (Math.floor(param.value * 10000) / 100) + '%';
+                }"""
+        ),
+        position="inside",
+    ),
+).set_global_opts(title_opts=opts.TitleOpts(title="整体出勤",pos_left="80%"))
+​
+​
+BR_grid = Grid(init_opts=opts.InitOpts(width="800px",height="250px")).add(l_bkbr_br2, grid_opts=opts.GridOpts()).add(l_ztbr_br2, grid_opts=opts.GridOpts()).add(l_bkcq_br2,grid_opts=opts.GridOpts()).add(l_ztcq_br2, grid_opts=opts.GridOpts())
+BR_grid.render_notebook()
+2.2 校区明细
+#蓝，红，紫，紫红
+#colors = ["#5793f3", "#d14a61", "#675bba","#DB7093"]
+x_data=df_br1['校区']
+legend_list=list(df_br1.keys())[1:]
+BR_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="550px"))
+    .add_xaxis(xaxis_data=x_data)
+  #  .add_yaxis(
+  #      series_name="整体班容",
+  #      yaxis_data=float_to_percent(df_br1['整体班容']),
+  #      yaxis_index=0,
+  #      color=colors[1],
+  #  )
+    .add_yaxis(
+        series_name="班课班容", yaxis_data=float_to_percent(df_br1['班课班容']), yaxis_index=1, color=colors[1]
+    )
+    .add_yaxis(
+        series_name="整体班容", yaxis_data=float_to_percent(df_br1['整体班容']), yaxis_index=1, color=colors[0]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="班容",
+            type_="value",
+            min_=0,
+            max_=130,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value} %")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="出勤",
+            min_=0,
+            max_=100,
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[3])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value} %"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+BR_line = (
+    Line()
+    .add_xaxis(xaxis_data=x_data)
+    .add_yaxis(
+        series_name="班课出勤", y_axis=float_to_percent(df_br1['班课出勤']),is_connect_nones=True, yaxis_index=0, color=colors[2]
+    )
+    .add_yaxis(
+        series_name="整体出勤", y_axis=float_to_percent(df_br1['整体出勤']),is_connect_nones=True, yaxis_index=0, color=colors[1]
+    )
+)
+​
+BR_bar.overlap(BR_line).render_notebook()
+三.辅导情况
+3.1 总览
+#df_fd=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='辅导指标')
+df_fd1=df_fd[df_fd['类型']=='整体']
+out_fd1=df_fd1.drop(['类型'],axis='columns')
+#pd.to_numeric(df_fd1, errors='coerce')
+out_fd1.index = Series(['']*len(out_fd1))
+out_fd1['辅导率']=out_fd1['辅导率'].apply(lambda x: format(x, '.2%'))
+out_fd1['辅导时长']=round(out_fd1['辅导时长'],2)
+out_fd1['辅导反馈']=out_fd1['辅导反馈'].apply(lambda x: format(x, '.2%'))
+out_fd1['学员时长/次']=round(out_fd1['学员时长/次'],2)
+out_fd1
+单位	辅导率	辅导时长	辅导反馈	学员时长/次
+个性化	91.88%	5.10	95.43%	1.40
+腾飞&锦秋	82.50%	4.56	89.42%	1.70
+工作室	nan%	3.95	94.84%	1.74
+3.2 校区明细
+df_fd2=df_fd[df_fd['类型']!='整体']
+df_fd2_gxh=df_fd[df_fd['类型']=='个性化']
+ls_fd2_gxh=df_fd2_gxh.to_dict(orient='list')
+df_fd2_xy=df_fd[df_fd['类型']=='学院']
+ls_fd2_xy=df_fd2_xy.to_dict(orient='list')
+df_fd2_gzs=df_fd[df_fd['类型']=='工作室']
+ls_fd2_gzs=df_fd2_gzs.to_dict(orient='list')
+FD_gxh_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="600px"))
+    .add_xaxis(xaxis_data=ls_fd2_gxh['单位'])
+    .add_yaxis(
+        series_name="辅导时长", yaxis_data=round_to_num(ls_fd2_gxh['辅导时长']), yaxis_index=2, color=colors[0]
+    )
+    .add_yaxis(
+        series_name="学员时长/次", yaxis_data=round_to_num(ls_fd2_gxh['学员时长/次']), yaxis_index=1, color=colors[2]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="学员时长/次",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gxh['学员时长/次'])),
+            position="right",
+            offset=50,
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[0])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="辅导时长",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gxh['辅导时长'])+1),
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="",
+            min_=0,
+            max_=100,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[1])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}%"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+FD_gxh_line = (
+    Line()
+    .add_xaxis(xaxis_data=ls_fd2_gxh['单位'])
+    .add_yaxis(
+        series_name="辅导率", y_axis=float_to_percent(ls_fd2_gxh['辅导率']),is_connect_nones=True,color=colors[0]
+    )
+    .add_yaxis(
+        series_name="辅导反馈", y_axis=float_to_percent(ls_fd2_gxh['辅导反馈']),is_connect_nones=True,color=colors[3]
+    )
+)
+#FD_gxh_bar.overlap(FD_gxh_line).render_notebook()
+FD_xy_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="600px"))
+    .add_xaxis(xaxis_data=ls_fd2_xy['单位'])
+    .add_yaxis(
+        series_name="辅导时长", yaxis_data=round_to_num(ls_fd2_xy['辅导时长']), yaxis_index=2, color=colors[0]
+    )
+    .add_yaxis(
+        series_name="学员时长/次", yaxis_data=round_to_num(ls_fd2_xy['学员时长/次']), yaxis_index=1, color=colors[2]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="学员时长/次",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_xy['学员时长/次'])),
+            position="right",
+            offset=50,
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[0])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="辅导时长",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_xy['辅导时长'])+1),
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="",
+            min_=0,
+            max_=100,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[1])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}%"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+FD_xy_line = (
+    Line()
+    .add_xaxis(xaxis_data=ls_fd2_xy['单位'])
+    .add_yaxis(
+        series_name="辅导率", y_axis=float_to_percent(ls_fd2_xy['辅导率']),yaxis_index=0,is_connect_nones=True,color=colors[0]
+    )
+    .add_yaxis(
+        series_name="辅导反馈", y_axis=float_to_percent(ls_fd2_xy['辅导反馈']),is_connect_nones=True,color=colors[3]
+    )
+)
+#FD_xy_bar.overlap(FD_xy_line).render_notebook()
+FD_gzs_bar = (
+    Bar(init_opts=opts.InitOpts(width="900px", height="600px"))
+    .add_xaxis(xaxis_data=ls_fd2_gzs['单位'])
+    .add_yaxis(
+        series_name="辅导时长", yaxis_data=round_to_num(ls_fd2_gzs['辅导时长']), yaxis_index=2, color=colors[0]
+    )
+    .add_yaxis(
+        series_name="学员时长/次", yaxis_data=round_to_num(ls_fd2_gzs['学员时长/次']), yaxis_index=1, color=colors[2]
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="学员时长/次",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gzs['学员时长/次'])),
+            position="right",
+            offset=50,
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[0])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            name="辅导时长",
+            type_="value",
+            min_=0,
+            max_=math.ceil(max(df_fd2_gzs['辅导时长'])+1),
+            position="left",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[2])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}h")  
+        )
+    )
+    .extend_axis(
+        yaxis=opts.AxisOpts(
+            type_="value",
+            name="",
+            min_=0,
+            max_=100,
+            position="right",
+            axisline_opts=opts.AxisLineOpts(
+                linestyle_opts=opts.LineStyleOpts(color=colors[1])
+            ),
+            axislabel_opts=opts.LabelOpts(formatter="{value}%"),
+            splitline_opts=opts.SplitLineOpts(
+                is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+            ),
+        )
+    )
+    .set_global_opts(
+        yaxis_opts=opts.AxisOpts(is_show=False),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+        xaxis_opts=opts.AxisOpts(axislabel_opts={"rotate":-30}),
+    )
+    .set_series_opts(
+        label_opts=opts.LabelOpts(is_show=False),
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值"),]
+        )
+    )
+)
+​
+FD_gzs_line = (
+    Line()
+    .add_xaxis(xaxis_data=ls_fd2_gzs['单位'])
+    .add_yaxis(
+        series_name="辅导反馈", y_axis=float_to_percent(ls_fd2_gzs['辅导反馈']),yaxis_index=0,is_connect_nones=True,color=colors[3]
+    )
+)
+#FD_gzs_bar.overlap(FD_gzs_line).render_notebook()
+FD_tab=Tab()
+FD_tab.add(FD_gxh_bar.overlap(FD_gxh_line), "个性化辅导")
+FD_tab.add(FD_xy_bar.overlap(FD_xy_line), "腾飞锦秋辅导")
+FD_tab.add(FD_gzs_bar.overlap(FD_gzs_line), "工作室辅导")
+FD_tab.render_notebook()
+个性化辅导 腾飞锦秋辅导 工作室辅导
+四.推荐报班情况
+## 4.1 趋势
+
+#df_tj_trend=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-趋势')
+df_tj_trend.fillna(0,inplace=True)
+df_tj_trend['日期']=pd.to_datetime(df_tj_trend['日期'],'YYYY-mm-dd')
+ls_tj_trend=df_tj_trend.to_dict(orient='list')
+
+TJ_bk_l1 = (
+    Line()
+    .add_xaxis(xaxis_data=timestamp_to_date(ls_tj_trend['日期']))
+    .add_yaxis(
+        series_name="班课推荐",
+        y_axis=ls_tj_trend['班课-推荐'],
+        stack="推荐总数",
+        symbol_size=5,
+        is_hover_animation=False,
+        label_opts=opts.LabelOpts(is_show=False),
+        linestyle_opts=opts.LineStyleOpts(width=1.5),
+        areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        #is_smooth=True,
+    )
+    .add_yaxis(
+        series_name="个性化推荐",
+        y_axis=ls_tj_trend['个性化-推荐'],
+        stack="推荐总数",
+        symbol_size=5,
+        is_hover_animation=False,
+        label_opts=opts.LabelOpts(is_show=False),
+        linestyle_opts=opts.LineStyleOpts(width=1.5),
+        areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        #is_smooth=True,
+    )
+        .add_yaxis(
+        series_name="腾飞锦秋推荐",
+        y_axis=ls_tj_trend['腾飞&锦秋-推荐'],
+        stack="推荐总数",
+        symbol_size=5,
+        is_hover_animation=False,
+        label_opts=opts.LabelOpts(is_show=False),
+        linestyle_opts=opts.LineStyleOpts(width=1.5),
+        areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        #is_smooth=True,
+    )
+    .set_global_opts(
+        title_opts=opts.TitleOpts(
+            title="班课推荐-报班关系图",pos_left="center"
+        ),
+        tooltip_opts=opts.TooltipOpts(trigger="axis",axis_pointer_type='cross'),
+        axispointer_opts=opts.AxisPointerOpts(
+            is_show=True, link=[{"xAxisIndex": "all"}]
+        ),
+        datazoom_opts=[
+            opts.DataZoomOpts(
+                is_show=True,
+                is_realtime=True,
+                start_value=0,
+                end_value=50,
+                xaxis_index=[0, 1],
+            )
+        ],
+        xaxis_opts=opts.AxisOpts(
+            type_="category",
+            boundary_gap=False,
+            axisline_opts=opts.AxisLineOpts(is_on_zero=True),
+        ),
+        yaxis_opts=opts.AxisOpts(name="推荐"),
+        legend_opts=opts.LegendOpts(pos_top="5%",pos_left="5%",),
+        toolbox_opts=opts.ToolboxOpts(
+            is_show=False,
+            feature={
+                "dataZoom": {"yAxisIndex": "none"},
+                "restore": {},
+                "saveAsImage": {},
+            },
+        ),
+    )
+)
+
+TJ_bk_l2 = (
+    Line()
+    .add_xaxis(xaxis_data=timestamp_to_date(ls_tj_trend['日期']))
+    .add_yaxis(
+        series_name="班课报班",
+        y_axis=ls_tj_trend['班课-报班'],
+        stack="报班总数",
+        xaxis_index=1,
+        yaxis_index=1,
+        symbol_size=5,
+        is_hover_animation=False,
+        label_opts=opts.LabelOpts(is_show=False),
+        linestyle_opts=opts.LineStyleOpts(width=1.5),
+        areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        #is_smooth=True,
+    )
+    .add_yaxis(
+        series_name="个性化报班",
+        y_axis=ls_tj_trend['个性化-报班'],
+        stack="报班总数",
+        xaxis_index=1,
+        yaxis_index=1,
+        symbol_size=5,
+        is_hover_animation=False,
+        label_opts=opts.LabelOpts(is_show=False),
+        linestyle_opts=opts.LineStyleOpts(width=1.5),
+        areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        #is_smooth=True,
+    )
+    .add_yaxis(
+        series_name="腾飞锦秋报班",
+        y_axis=ls_tj_trend['腾飞&锦秋-报班'],
+        stack="报班总数",
+        xaxis_index=1,
+        yaxis_index=1,
+        symbol_size=5,
+        is_hover_animation=False,
+        label_opts=opts.LabelOpts(is_show=False),
+        linestyle_opts=opts.LineStyleOpts(width=1.5),
+        areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        #is_smooth=True,
+    )
+    .set_global_opts(
+        axispointer_opts=opts.AxisPointerOpts(
+            is_show=True, link=[{"xAxisIndex": "all"}]
+        ),
+        tooltip_opts=opts.TooltipOpts(trigger="axis",axis_pointer_type='cross'),
+        xaxis_opts=opts.AxisOpts(
+            is_show=False,
+            grid_index=1,
+            type_="category",
+            boundary_gap=False,
+            axisline_opts=opts.AxisLineOpts(is_on_zero=True),
+            position="top",
+        ),
+        datazoom_opts=[
+            opts.DataZoomOpts(
+                is_realtime=True,
+                type_="inside",
+                start_value=0,
+                end_value=50,
+                xaxis_index=[0, 1],
+            )
+        ],
+        yaxis_opts=opts.AxisOpts(is_inverse=True, name="报班",axistick_opts=opts.AxisTickOpts(is_show=True),splitline_opts=opts.SplitLineOpts(is_show=True),),
+        legend_opts=opts.LegendOpts(pos_top="5%",pos_right="5%"),
+    )
+)
+
+TJ_bk_grid=(
+    Grid(init_opts=opts.InitOpts(width="900px", height="700px"))
+    .add(chart=TJ_bk_l1, grid_opts=opts.GridOpts(pos_left=25, pos_right=25,height="35%"))
+    .add(
+        chart=TJ_bk_l2,
+        grid_opts=opts.GridOpts(pos_left=25, pos_right=25, pos_top="50%", height="35%"),
+    )
+)
+TJ_bk_grid.render_notebook()
+
+## 4.2 条线完成
+
+#df_tj_tx=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-条线完成')
+#df_tj_xq=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-校区完成')
+table_tj_tx=df_tj_tx
+table_tj_tx.index=Series(['']*len(table_tj_tx))
+table_tj_tx['报班量完成率']=table_tj_tx['报班量完成率'].apply(lambda x: format(x, '.2%'))
+table_tj_tx['金额完成率']=table_tj_tx['金额完成率'].apply(lambda x: format(x, '.2%'))
+#table_tj_tx['金额']=round(table_tj_tx['金额'],0)
+table_tj_tx
+
+## 4.3 校区完成
+
+table_tj_xq=df_tj_xq
+table_tj_xq.index=Series(['']*len(table_tj_xq))
+table_tj_xq['个数完成率']=table_tj_xq['个数完成率'].apply(lambda x: format(x, '.2%'))
+table_tj_xq['金额完成率']=table_tj_xq['金额完成率'].apply(lambda x: format(x, '.2%'))
+table_tj_xq
+
+## 4.4 客服九指标
+
+df_tj_9indexes=pd.read_excel('轨迹组月报（数据）.xlsx',sheet_name='推荐报班-九指标')
+#df_tj_9indexes['推荐率']=round(df_tj_9indexes['推荐率'],2)
+#df_tj_9indexes['转化率']=round(df_tj_9indexes['转化率'],2)
+df_tj_9indexes['单笔']=round(df_tj_9indexes['单笔'],1)
+#ls_tj_9indexes=df_tj_9indexes.to_dict(orient='list')
+
+indexes9_gxh=df_tj_9indexes[df_tj_9indexes['类型']=='个性化']
+indexes9_bk=df_tj_9indexes[df_tj_9indexes['类型']=='班课']
+indexes9_tfjq=df_tj_9indexes[df_tj_9indexes['类型']=='腾飞锦秋']
+
+x=df_tj_9indexes['转化率']
+y=df_tj_9indexes['推荐率']
+txt=df_tj_9indexes['单位']
+size=df_tj_9indexes['单笔']
+
+
+x_gxh=indexes9_gxh['转化率']
+y_gxh=indexes9_gxh['推荐率']
+txt_gxh=indexes9_gxh['单位']
+size_gxh=indexes9_gxh['单笔']
+
+x_bk=indexes9_bk['转化率']
+y_bk=indexes9_bk['推荐率']
+txt_bk=indexes9_bk['单位']
+size_bk=indexes9_bk['单笔']
+
+x_tfjq=indexes9_tfjq['转化率']
+y_tfjq=indexes9_tfjq['推荐率']
+txt_tfjq=indexes9_tfjq['单位']
+size_tfjq=indexes9_tfjq['单笔']
+
+#n=0.07
+#
+#plt.figure(figsize=(15,15))
+#plt.rcParams['font.sans-serif'] = ['SimHei']
+#plt.rcParams['axes.unicode_minus'] = False
+#
+#plt.subplot(221)
+#plt.title('个性化九指标')
+#plt.scatter(x_gxh,y_gxh,c='#5793f3',s=size_gxh*n,alpha=0.6)
+#plt.xlabel('转化率')
+#plt.ylabel('推荐率')
+#plt.xlim([max(min(df_tj_9indexes['转化率'])-0.05,0), min(max(df_tj_9indexes['转化率'])+0.05,1)])
+#plt.ylim([max(min(df_tj_9indexes['推荐率'])-0.05,0), min(max(df_tj_9indexes['推荐率'])+0.05,1)])
+#for i in range(len(x_gxh)):
+#    plt.annotate(txt[i], xy = (x[i], y[i]), xytext = (x[i], y[i]))
+#    
+#plt.subplot(222)
+#plt.title('班课九指标')
+#plt.scatter(x_bk,y_bk,c='#d14a61',s=size_bk*n,alpha=0.6)
+#plt.xlabel('转化率')
+#plt.ylabel('推荐率')
+#plt.xlim([max(min(df_tj_9indexes['转化率'])-0.05,0), min(max(df_tj_9indexes['转化率'])+0.05,1)])
+#plt.ylim([max(min(df_tj_9indexes['推荐率'])-0.05,0), min(max(df_tj_9indexes['推荐率'])+0.05,1)])
+#for j in range(len(x_bk)):
+#    plt.annotate(txt[j+len(x_gxh)], xy = (x[j+len(x_gxh)], y[j+len(x_gxh)]), xytext = (x[j+len(x_gxh)], y[j+len(x_gxh)]))
+#    
+#
+#plt.subplot(223)
+#plt.title('腾飞锦秋九指标')
+#plt.scatter(x_tfjq,y_tfjq,c='#675bba',s=size_tfjq*n,alpha=0.6)
+#plt.xlabel('转化率')
+#plt.ylabel('推荐率')
+#plt.xlim([max(min(df_tj_9indexes['转化率'])-0.05,0), min(max(df_tj_9indexes['转化率'])+0.05,1)])
+#plt.ylim([max(min(df_tj_9indexes['推荐率'])-0.05,0), min(max(df_tj_9indexes['推荐率'])+0.05,1)])
+##legend1 = plt.legend(*scatter.legend_elements(),loc="lower left", title="Classes")
+##plt.add_artist(legend1)
+#for j in range(len(x_tfjq)):
+#    plt.annotate(txt[j+len(x_gxh)+len(x_bk)], xy = (x[j+len(x_gxh)+len(x_bk)], y[j+len(x_gxh)+len(x_bk)]), xytext = (x[j+len(x_gxh)+len(x_bk)], y[j+len(x_gxh)+len(x_bk)]))
+#plt.show()
+
+gxh_sc = (
+    Scatter(init_opts=opts.InitOpts(width="900px", height="700px"))
+    .add_xaxis(x_gxh)
+    .add_yaxis(
+        "",
+        [list(z) for z in zip(y_gxh, size_gxh, x_gxh, txt_gxh)],
+        label_opts=opts.LabelOpts(
+            is_show=True,
+            color='black',
+            formatter=JsCode(
+                "function(params){return params.value[4]}"
+            )
+        ),
+    )
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(name='转化率', max_=math.ceil(max(x)*100)/100,
+                                 # axislabel_opts={"rotate":-30}
+                                 ),
+        yaxis_opts=opts.AxisOpts(name='推荐率', max_=math.ceil(max(y)*100)/100,
+                                 # axislabel_opts={"rotate":-30}
+                                 ),
+        title_opts=opts.TitleOpts(title=""),
+        tooltip_opts=opts.TooltipOpts(
+            formatter=JsCode(
+                "function (params) {return params.value[4]+'<br/>'+'转化率: '+(Math.floor(params.value[3] * 10000) / 100) + '%'+'<br/>'+'推荐率: '+ (Math.floor(params.value[1] * 10000) / 100) + '%'+'<br/>'+'单笔: '+ params.value[2];}"
+            )
+        ),
+        visualmap_opts=opts.VisualMapOpts(
+            is_show=False,
+            type_="size", max_=max(size), min_=min(size), series_index=0, dimension=2
+        ),
+    )
+)
+
+
+bk_sc = (
+    Scatter(init_opts=opts.InitOpts(width="900px", height="700px"))
+    .add_xaxis(x_bk)
+    .add_yaxis(
+        "",
+        [list(z) for z in zip(y_bk, size_bk, x_bk, txt_bk)],
+        label_opts=opts.LabelOpts(
+            is_show=True,
+            color='black',
+            formatter=JsCode(
+                "function(params){return params.value[4]}"
+            )
+        ),
+    )
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(name='转化率', max_=math.ceil(max(x)*100)/100,
+                                 # axislabel_opts={"rotate":-30}
+                                 ),
+        yaxis_opts=opts.AxisOpts(name='推荐率', max_=math.ceil(max(y)*100)/100,
+                                 # axislabel_opts={"rotate":-30}
+                                 ),
+        title_opts=opts.TitleOpts(title=""),
+        tooltip_opts=opts.TooltipOpts(
+            formatter=JsCode(
+                "function (params) {return params.value[4]+'<br/>'+'转化率: '+(Math.floor(params.value[3] * 10000) / 100) + '%'+'<br/>'+'推荐率: '+ (Math.floor(params.value[1] * 10000) / 100) + '%'+'<br/>'+'单笔: '+ params.value[2];}"
+            )
+        ),
+        visualmap_opts=opts.VisualMapOpts(
+            is_show=False,
+            type_="size", max_=max(size), min_=min(size), series_index=0, dimension=2
+        ),
+    )
+)
+
+tfjq_sc = (
+    Scatter(init_opts=opts.InitOpts(width="900px", height="700px"))
+    .add_xaxis(x_tfjq)
+    .add_yaxis(
+        "",
+        [list(z) for z in zip(y_tfjq, size_tfjq, x_tfjq, txt_tfjq)],
+        label_opts=opts.LabelOpts(
+            is_show=True,
+            color='black',
+            formatter=JsCode(
+                "function(params){return params.value[4]}"
+            )
+        ),
+    )
+    .set_global_opts(
+        xaxis_opts=opts.AxisOpts(name='转化率', max_=math.ceil(max(x)*100)/100,
+                                 # axislabel_opts={"rotate":-30}
+                                 ),
+        yaxis_opts=opts.AxisOpts(name='推荐率', max_=math.ceil(max(y)*100)/100,
+                                 # axislabel_opts={"rotate":-30}
+                                 ),
+        title_opts=opts.TitleOpts(title=""),
+        tooltip_opts=opts.TooltipOpts(
+            formatter=JsCode(
+                "function (params) {return params.value[4]+'<br/>'+'转化率: '+(Math.floor(params.value[3] * 10000) / 100) + '%'+'<br/>'+'推荐率: '+ (Math.floor(params.value[1] * 10000) / 100) + '%'+'<br/>'+'单笔: '+ params.value[2];}"
+            )
+        ),
+        visualmap_opts=opts.VisualMapOpts(
+            is_show=False,
+            type_="size", max_=max(size), min_=min(size), series_index=0, dimension=2
+        ),
+    )
+)
+
+indexes9_tab = Tab()
+indexes9_tab.add(gxh_sc, "个性化九指标")
+indexes9_tab.add(bk_sc, "班课九指标")
+indexes9_tab.add(tfjq_sc, "腾飞锦秋九指标")
+
+indexes9_tab.render_notebook()
